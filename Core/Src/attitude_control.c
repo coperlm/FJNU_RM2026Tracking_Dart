@@ -57,7 +57,7 @@ void dart_system_init(void) {
     pwm_set_servo(SERVO_RIGHT_WING, SERVO_CENTER);
     
     // 设置电机初始值(低速)
-    pwm_set_motor(MOTOR_THRUSTER, MOTOR_IDLE);
+    pwm_set_motor(MOTOR_THRUSTER_1, MOTOR_IDLE);
     
     // 更新系统状态
     system_state = SYSTEM_IDLE;
@@ -96,19 +96,19 @@ void target_tracking(const Attitude_t *attitude, const Target_t *target, Control
     // 根据系统状态调整电机输出
     switch (system_state) {
         case SYSTEM_IDLE:
-            control->thruster = MOTOR_IDLE;
+            control->thruster_1 = MOTOR_IDLE;
             break;
             
         case SYSTEM_TARGETING:
-            control->thruster = (MOTOR_IDLE + MOTOR_MAX_THRUST) / 2;
+            control->thruster_1 = (MOTOR_IDLE + MOTOR_MAX_THRUST) / 2;
             break;
             
         case SYSTEM_ATTACK:
-            control->thruster = MOTOR_MAX_THRUST;
+            control->thruster_1 = MOTOR_MAX_THRUST;
             break;
             
         default:
-            control->thruster = MOTOR_IDLE;
+            control->thruster_1 = MOTOR_IDLE;
     }
 }
 
@@ -138,7 +138,7 @@ void update_attitude_control(const Attitude_t *attitude, const Target_t *target,
         // 目标跟踪状态更新
         target_tracking(attitude, target, control);
     } else {
-        control->thruster = MOTOR_IDLE;
+        control->thruster_1 = MOTOR_IDLE;
     }
     
     // 计算最终的控制输出
@@ -156,5 +156,5 @@ void update_attitude_control(const Attitude_t *attitude, const Target_t *target,
     // 输出控制信号到PWM
     pwm_set_servo(SERVO_LEFT_WING, control->left_wing);
     pwm_set_servo(SERVO_RIGHT_WING, control->right_wing);
-    pwm_set_motor(MOTOR_THRUSTER, control->thruster);
+    pwm_set_motor(MOTOR_THRUSTER_1, control->thruster_1);
 }

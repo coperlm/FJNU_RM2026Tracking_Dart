@@ -10,14 +10,16 @@ void pwm_init(void) {
     // 启动定时器的PWM输出
     HAL_TIM_PWM_Start(&htim1, SERVO_LEFT_CHANNEL);  // 左舵机
     HAL_TIM_PWM_Start(&htim1, SERVO_RIGHT_CHANNEL); // 右舵机
-    HAL_TIM_PWM_Start(&htim2, MOTOR_CHANNEL);       // 电机
+    HAL_TIM_PWM_Start(&htim2, MOTOR_CHANNEL_1);     // 电机1
+    HAL_TIM_PWM_Start(&htim2, MOTOR_CHANNEL_2);     // 电机2
     
     // 设置舵机初始位置为中间位置
     pwm_set_servo(SERVO_LEFT_WING, 1500);
     pwm_set_servo(SERVO_RIGHT_WING, 1500);
     
     // 设置电机初始值为最低速度
-    pwm_set_motor(MOTOR_THRUSTER, MOTOR_MIN_PULSE);
+    pwm_set_motor(MOTOR_THRUSTER_1, MOTOR_MIN_PULSE);
+    pwm_set_motor(MOTOR_THRUSTER_2, MOTOR_MIN_PULSE);
 }
 
 /**
@@ -68,7 +70,9 @@ void pwm_set_motor(uint8_t channel, uint16_t pulse_width_us) {
     uint32_t pulse = (pulse_width_us * period) / 20000;
 
     // 设置PWM值
-    if (channel == MOTOR_THRUSTER) {
-        __HAL_TIM_SET_COMPARE(&htim2, MOTOR_CHANNEL, pulse);
+    if (channel == MOTOR_THRUSTER_1) {
+        __HAL_TIM_SET_COMPARE(&htim2, MOTOR_CHANNEL_1, pulse);
+    } else if (channel == MOTOR_THRUSTER_2) {
+        __HAL_TIM_SET_COMPARE(&htim2, MOTOR_CHANNEL_2, pulse);
     }
 }

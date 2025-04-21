@@ -39,6 +39,8 @@ dart2\main.o: ../Core/Inc/usart.h
 dart2\main.o: ../Core/Inc/gpio.h
 dart2\main.o: ../Core/Inc/dart_control.h
 dart2\main.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdbool.h
+dart2\main.o: ../Core/Inc/oled.h
 dart2\main.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdio.h
-dart2\main.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdlib.h
 dart2\main.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\string.h
+dart2\main.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdarg.h
+dart2\main.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdlib.h

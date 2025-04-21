@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "dart_control.h"
+#include "oled.h"  // 添加OLED头文件
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,7 +64,7 @@ void delay_ms(uint16_t ms);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 /**
- * @brief 重定向printf到UART
+ * @brief 重定向printf到UART和OLED显示器
  */
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
@@ -73,7 +74,27 @@ void delay_ms(uint16_t ms);
 
 PUTCHAR_PROTOTYPE
 {
+  // 发送到UART
   HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  
+  // 发送到OLED屏幕
+  static char line_buffer[128];
+  static uint8_t buffer_index = 0;
+  
+  // 存储字符到缓冲区
+  if (ch != '\r') { // 忽略回车符
+    if (buffer_index < sizeof(line_buffer) - 1) {
+      line_buffer[buffer_index++] = ch;
+    }
+  }
+  
+  // 遇到换行符或缓冲区满时，显示当前行
+  if (ch == '\n' || buffer_index >= sizeof(line_buffer) - 1) {
+    line_buffer[buffer_index] = '\0';  // 添加字符串结束符
+    OLED_Printf("%s", line_buffer);   // 显示到OLED
+    buffer_index = 0;                 // 重置缓冲区
+  }
+  
   return ch;
 }
 
@@ -125,6 +146,11 @@ int main(void)
   
   // 初始化随机数生成器 - 使用当前系统时间作为种子
   srand(HAL_GetTick());
+  
+  // 初始化OLED显示屏
+  OLED_Init();
+  HAL_Delay(100);  // 等待OLED稳定
+  OLED_Clear();
   
   printf("\n\r飞镖飞控系统启动...\n\r");
   
