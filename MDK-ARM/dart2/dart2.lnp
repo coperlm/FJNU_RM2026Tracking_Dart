@@ -12,6 +12,8 @@
 "dart2\pid_controller.o"
 "dart2\pwm_control.o"
 "dart2\oled.o"
+"dart2\kalman_filter.o"
+"dart2\mpu6050.o"
 "dart2\stm32f4xx_hal_i2c.o"
 "dart2\stm32f4xx_hal_i2c_ex.o"
 "dart2\stm32f4xx_hal_rcc.o"
