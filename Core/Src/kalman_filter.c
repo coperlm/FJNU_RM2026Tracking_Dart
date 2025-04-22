@@ -7,6 +7,9 @@ static float roll_comp = 0.0f;   // 横滚角 (互补滤波)
 static float pitch_comp = 0.0f;  // 俯仰角 (互补滤波)
 static float yaw_comp = 0.0f;    // 偏航角 (互补滤波)
 
+/* 全局导出的卡尔曼滤波器实例，供其他模块使用 */
+Kalman_t KalmanX, KalmanY;
+
 /**
  * @brief 初始化卡尔曼滤波器
  * 
@@ -90,6 +93,11 @@ void read_mpu6050_attitude(Attitude_t *attitude)
     if (is_first_run) {
         Kalman_Init(&kalman_roll);
         Kalman_Init(&kalman_pitch);
+        
+        // 初始化全局卡尔曼滤波器实例
+        Kalman_Init(&KalmanX);
+        Kalman_Init(&KalmanY);
+        
         is_first_run = false;
         last_time = HAL_GetTick();
     }

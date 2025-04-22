@@ -152,12 +152,15 @@ int main(void)
   HAL_Delay(100);  // 等待OLED稳定
   OLED_Clear();
   
-  printf("\n\r飞镖飞控系统启动...\n\r");
+  // 中文：飞镖飞控系统启动...
+  printf("\n\rDart Flight Control System Start...\n\r");
+
   
   // 初始化飞镖控制系统
   dart_system_init();
   
-  printf("系统初始化完成，开始控制循环...\n\r\n\r");
+  // 中文：系统初始化完成，开始控制循环...
+  printf("System Init Done. Starting Control Loop...\n\r\n\r");
 
   /* USER CODE END 2 */
 
@@ -178,7 +181,9 @@ int main(void)
     update_attitude_control(&attitude, &target, &control);
     
     // 输出调试信息
-    printf("姿态: Roll=%.1f, Pitch=%.1f, Yaw=%.1f | ", attitude.roll, attitude.pitch, attitude.yaw);
+    // 中文：姿态: Roll=..., Pitch=..., Yaw=...
+    printf("Att: Roll=%.1f, Pitch=%.1f, Yaw=%.1f | ", attitude.roll, attitude.pitch, attitude.yaw);
+
            
     if (target.detected) {
         printf("目标: X=%.2f, Y=%.2f [检测到]\n\r", target.x, target.y);

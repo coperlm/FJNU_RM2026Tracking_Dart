@@ -1,20 +1,41 @@
 #include "flight_mode.h"
 #include "main.h"
+#include "attitude_control.h"
 #include <string.h>
 #include <math.h>
+
+// 静态函数声明
+static void search_mode_control(const Attitude_t *attitude, const Target_t *target, Control_t *control, float dt);
+static void tracking_mode_control(const Attitude_t *attitude, const Target_t *target, Control_t *control, float dt);
+static void attack_mode_control(const Attitude_t *attitude, const Target_t *target, Control_t *control, float dt);
+static void return_mode_control(const Attitude_t *attitude, const Target_t *target, Control_t *control, float dt);
+static void failsafe_mode_control(const Attitude_t *attitude, const Target_t *target, Control_t *control, float dt);
 
 // 静态变量定义
 static FlightState_t flight_state;
 static FlightConfig_t flight_config;
 
-// 模式和阶段名称定义
+// 模式和阶段名称定义（英文缩写，适用于不支持中文的 OLED）
+
+// 飞行模式（原：待机、搜索、追踪、攻击、返回、故障保护）
 static const char* mode_names[MODE_COUNT] = {
-    "待机", "搜索", "追踪", "攻击", "返回", "故障保护"
+    "STBY",    // 待机 (Standby)
+    "SRCH",    // 搜索 (Search)
+    "TRCK",    // 追踪 (Tracking)
+    "ATCK",    // 攻击 (Attack)
+    "RTN",     // 返回 (Return)
+    "FAIL"     // 故障保护 (Failsafe)
 };
 
+// 飞行阶段（原：地面、起飞、巡航、接近、着陆）
 static const char* phase_names[PHASE_COUNT] = {
-    "地面", "起飞", "巡航", "接近", "着陆"
+    "GRND",    // 地面 (Ground)
+    "TKOF",    // 起飞 (Takeoff)
+    "CRUZ",    // 巡航 (Cruise)
+    "APPR",    // 接近 (Approach)
+    "LAND"     // 着陆 (Landing)
 };
+
 
 /**
  * @brief 初始化飞行状态机
@@ -213,8 +234,8 @@ static void search_mode_control(const Attitude_t *attitude, const Target_t *targ
     fake_target.y = search_roll / 30.0f;   // 映射到[-1,1]范围
     fake_target.detected = true;
     
-    // 使用标准姿态控制器，传入"虚拟目标"实现搜索路径
-    update_attitude_control(attitude, &fake_target, control, dt);
+    // 使用标准姿态控制器，传入"虚拟目标"实现搜索路径 (移除dt参数)
+    update_attitude_control(attitude, &fake_target, control);
     
     // 设置中等推力
     control->thruster_1 = (uint16_t)(MOTOR_IDLE + (MOTOR_MAX_THRUST - MOTOR_IDLE) * 0.6f);
@@ -225,8 +246,8 @@ static void search_mode_control(const Attitude_t *attitude, const Target_t *targ
  * @brief 追踪模式控制策略
  */
 static void tracking_mode_control(const Attitude_t *attitude, const Target_t *target, Control_t *control, float dt) {
-    // 使用标准姿态控制器追踪目标
-    update_attitude_control(attitude, target, control, dt);
+    // 使用标准姿态控制器追踪目标 (移除dt参数)
+    update_attitude_control(attitude, target, control);
     
     // 设置适中的推力以保持追踪
     control->thruster_1 = (uint16_t)(MOTOR_IDLE + (MOTOR_MAX_THRUST - MOTOR_IDLE) * 0.7f);
@@ -238,7 +259,7 @@ static void tracking_mode_control(const Attitude_t *attitude, const Target_t *ta
  */
 static void attack_mode_control(const Attitude_t *attitude, const Target_t *target, Control_t *control, float dt) {
     // 使用更激进的PID参数和更高的前馈增益(这里简化为直接使用姿态控制器)
-    update_attitude_control(attitude, target, control, dt);
+    update_attitude_control(attitude, target, control);
     
     // 增大推力 - 快速接近目标
     control->thruster_1 = (uint16_t)(MOTOR_IDLE + (MOTOR_MAX_THRUST - MOTOR_IDLE) * 0.9f);
@@ -257,7 +278,8 @@ static void return_mode_control(const Attitude_t *attitude, const Target_t *targ
     home_target.y = 0.0f;
     home_target.detected = true;
     
-    update_attitude_control(attitude, &home_target, control, dt);
+    // 移除dt参数
+    update_attitude_control(attitude, &home_target, control);
     
     // 降低推力
     control->thruster_1 = (uint16_t)(MOTOR_IDLE + (MOTOR_MAX_THRUST - MOTOR_IDLE) * 0.5f);
@@ -274,7 +296,8 @@ static void failsafe_mode_control(const Attitude_t *attitude, const Target_t *ta
     safe_target.y = 0.0f;
     safe_target.detected = true;
     
-    update_attitude_control(attitude, &safe_target, control, dt);
+    // 移除dt参数
+    update_attitude_control(attitude, &safe_target, control);
     
     // 低推力降落
     control->thruster_1 = (uint16_t)(MOTOR_IDLE + (MOTOR_MAX_THRUST - MOTOR_IDLE) * 0.3f);

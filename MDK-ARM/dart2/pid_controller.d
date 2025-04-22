@@ -1,4 +1,7 @@
 dart2\pid_controller.o: ..\Core\Src\pid_controller.c
+dart2\pid_controller.o: ../Core/Inc/pid_controller.h
+dart2\pid_controller.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdint.h
+dart2\pid_controller.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdbool.h
 dart2\pid_controller.o: ../Core/Inc/dart_control.h
 dart2\pid_controller.o: ../Core/Inc/main.h
 dart2\pid_controller.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h
@@ -8,7 +11,6 @@ dart2\pid_controller.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h
 dart2\pid_controller.o: ../Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f4xx.h
 dart2\pid_controller.o: ../Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f401xc.h
 dart2\pid_controller.o: ../Drivers/CMSIS/Include/core_cm4.h
-dart2\pid_controller.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdint.h
 dart2\pid_controller.o: ../Drivers/CMSIS/Include/cmsis_version.h
 dart2\pid_controller.o: ../Drivers/CMSIS/Include/cmsis_compiler.h
 dart2\pid_controller.o: ../Drivers/CMSIS/Include/cmsis_armcc.h
@@ -34,5 +36,4 @@ dart2\pid_controller.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex
 dart2\pid_controller.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h
 dart2\pid_controller.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h
 dart2\pid_controller.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
-dart2\pid_controller.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdbool.h
 dart2\pid_controller.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\math.h

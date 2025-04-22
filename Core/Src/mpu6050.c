@@ -1,5 +1,6 @@
 #include "mpu6050.h"
 #include "i2c.h"
+#include "kalman_filter.h"
 #include <math.h>
 
 /* 陀螺仪和加速度计转换系数 */
@@ -17,6 +18,10 @@
 static MPU6050_Data_t mpu_data;
 static float gyro_scale_factor;
 static float accel_scale_factor;
+
+// 全局定义 MPU6050 结构体实例，供外部访问
+MPU6050_t MPU6050;
+extern Kalman_t KalmanX, KalmanY;  // 从 kalman_filter.c 导入滤波器实例
 
 /**
  * @brief 初始化MPU6050
@@ -124,6 +129,56 @@ HAL_StatusTypeDef MPU6050_ReadSensor(MPU6050_Data_t *data)
     
     // 同时更新全局数据
     mpu_data = *data;
+    
+    return HAL_OK;
+}
+
+/**
+ * @brief 一次性读取所有MPU6050数据并应用卡尔曼滤波
+ * 
+ * @param I2Cx I2C句柄指针
+ * @param DataStruct MPU6050数据结构体指针
+ * @return HAL_StatusTypeDef 读取状态
+ */
+HAL_StatusTypeDef MPU6050_Read_All(I2C_HandleTypeDef *I2Cx, MPU6050_t *DataStruct)
+{
+    uint8_t buffer[14];
+    int16_t raw_accel_x, raw_accel_y, raw_accel_z;
+    int16_t raw_temp;
+    int16_t raw_gyro_x, raw_gyro_y, raw_gyro_z;
+    HAL_StatusTypeDef status;
+    float accel_roll, accel_pitch;
+    
+    // 从0x3B读取14个字节的数据 (加速度、温度和角速度)
+    status = HAL_I2C_Mem_Read(I2Cx, MPU6050_ADDR, MPU6050_ACCEL_XOUT_H, 1, buffer, 14, 100);
+    if (status != HAL_OK) return status;
+    
+    // 合并高字节和低字节
+    raw_accel_x = (int16_t)(buffer[0] << 8 | buffer[1]);
+    raw_accel_y = (int16_t)(buffer[2] << 8 | buffer[3]);
+    raw_accel_z = (int16_t)(buffer[4] << 8 | buffer[5]);
+    raw_temp    = (int16_t)(buffer[6] << 8 | buffer[7]);
+    raw_gyro_x  = (int16_t)(buffer[8] << 8 | buffer[9]);
+    raw_gyro_y  = (int16_t)(buffer[10] << 8 | buffer[11]);
+    raw_gyro_z  = (int16_t)(buffer[12] << 8 | buffer[13]);
+    
+    // 转换为实际物理值
+    DataStruct->Ax = raw_accel_x * accel_scale_factor;
+    DataStruct->Ay = raw_accel_y * accel_scale_factor;
+    DataStruct->Az = raw_accel_z * accel_scale_factor;
+    DataStruct->Temperature = (raw_temp / 340.0f) + 36.53f;  // 温度转换公式来自MPU6050数据手册
+    DataStruct->Gx = raw_gyro_x * gyro_scale_factor;
+    DataStruct->Gy = raw_gyro_y * gyro_scale_factor;
+    DataStruct->Gz = raw_gyro_z * gyro_scale_factor;
+    
+    // 从加速度计计算倾角
+    accel_roll = atan2f(DataStruct->Ay, DataStruct->Az) * 57.3f;
+    accel_pitch = atan2f(-DataStruct->Ax, sqrtf(DataStruct->Ay * DataStruct->Ay + 
+                                               DataStruct->Az * DataStruct->Az)) * 57.3f;
+    
+    // 应用卡尔曼滤波
+    DataStruct->KalmanAngleX = Kalman_Update(&KalmanX, accel_roll, DataStruct->Gx, DT);
+    DataStruct->KalmanAngleY = Kalman_Update(&KalmanY, accel_pitch, DataStruct->Gy, DT);
     
     return HAL_OK;
 }

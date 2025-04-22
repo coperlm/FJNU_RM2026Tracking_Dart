@@ -36,4 +36,6 @@ dart2\mpu6050.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h
 dart2\mpu6050.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 dart2\mpu6050.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdbool.h
 dart2\mpu6050.o: ../Core/Inc/i2c.h
+dart2\mpu6050.o: ../Core/Inc/kalman_filter.h
+dart2\mpu6050.o: ../Core/Inc/dart_control.h
 dart2\mpu6050.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\math.h

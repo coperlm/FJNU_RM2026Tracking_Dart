@@ -58,10 +58,22 @@ typedef struct {
     float temp;
 } MPU6050_Data_t;
 
+/* 扩展的MPU6050结构体，包含卡尔曼滤波后的角度 */
+typedef struct {
+    float Ax, Ay, Az;        // 加速度值 (g)
+    float Gx, Gy, Gz;        // 角速度值 (度/秒)
+    float Temperature;        // 温度值 (摄氏度)
+    float KalmanAngleX;      // X轴卡尔曼滤波后的角度
+    float KalmanAngleY;      // Y轴卡尔曼滤波后的角度
+} MPU6050_t;
+
 /* 函数声明 */
 HAL_StatusTypeDef MPU6050_Init(void);
 HAL_StatusTypeDef MPU6050_ReadSensor(MPU6050_Data_t *data);
 void calculate_angles_from_accel(const MPU6050_Data_t *mpu_data, float *roll, float *pitch);
 MPU6050_Data_t* MPU6050_GetData(void);
+
+/* 新增函数声明 */
+HAL_StatusTypeDef MPU6050_Read_All(I2C_HandleTypeDef *I2Cx, MPU6050_t *DataStruct);
 
 #endif /* MPU6050_H */

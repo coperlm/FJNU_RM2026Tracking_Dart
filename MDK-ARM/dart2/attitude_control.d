@@ -35,4 +35,10 @@ dart2\attitude_control.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.
 dart2\attitude_control.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h
 dart2\attitude_control.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 dart2\attitude_control.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdbool.h
+dart2\attitude_control.o: ../Core/Inc/attitude_control.h
+dart2\attitude_control.o: ../Core/Inc/pid_controller.h
+dart2\attitude_control.o: ../Core/Inc/kalman_filter.h
+dart2\attitude_control.o: ../Core/Inc/mpu6050.h
+dart2\attitude_control.o: ../Core/Inc/flight_mode.h
 dart2\attitude_control.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\math.h
+dart2\attitude_control.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\string.h

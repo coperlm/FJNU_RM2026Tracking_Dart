@@ -37,7 +37,8 @@ dart2\dart_control.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 dart2\dart_control.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdbool.h
 dart2\dart_control.o: ../Core/Inc/mpu6050.h
 dart2\dart_control.o: ../Core/Inc/kalman_filter.h
+dart2\dart_control.o: ../Core/Inc/flight_mode.h
+dart2\dart_control.o: ../Core/Inc/i2c.h
 dart2\dart_control.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\math.h
 dart2\dart_control.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\stdlib.h
 dart2\dart_control.o: D:\tools\robo-electro-control\keil5\ARM\ARMCC\Bin\..\include\string.h
-dart2\dart_control.o: ../Core/Inc/attitude_control.h

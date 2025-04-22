@@ -6,15 +6,25 @@
 #include <math.h>
 #include <string.h>
 
-// PID控制器实例
-static PID_t pid_roll;
-static PID_t pid_pitch;
-static PID_t pid_yaw;
-static PID_t pid_target_x;
-static PID_t pid_target_y;
+// 定义PI值 (M_PI可能在某些编译器未定义)
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
+#define DEG_TO_RAD (M_PI / 180.0f)
+#define RAD_TO_DEG (180.0f / M_PI)
 
-// 系统状态
-static SystemState_t system_state = SYSTEM_INIT;
+// 删除未使用的PID控制器实例
+// static PID_t pid_roll;
+// static PID_t pid_pitch;
+// static PID_t pid_yaw;
+// static PID_t pid_target_x;
+// static PID_t pid_target_y;
+
+// 删除未使用的系统状态变量
+// static SystemState_t system_state = SYSTEM_INIT;
+
+// 定义姿态控制器配置
+static AttitudeControllerConfig_t attitude_controller_config;
 
 // 控制参数
 #define ROLL_KP  2.0f
@@ -76,6 +86,15 @@ void dart_system_init(void) {
 void target_tracking(const Attitude_t *attitude, const Target_t *target, Control_t *control) {
     // 获取当前的飞行模式
     FlightMode_t current_mode = flight_mode_get();
+    float desired_roll = 0.0f;
+    float desired_pitch = 0.0f;
+    MPU6050_Data_t *mpu_data = MPU6050_GetData();
+    float roll_rate_sp = 0.0f;
+    float pitch_rate_sp = 0.0f;
+    float yaw_rate_sp = 0.0f;
+    float roll_output = 0.0f;
+    float pitch_output = 0.0f;
+    float yaw_output = 0.0f;
     
     // 根据不同的飞行模式选择不同的控制策略
     switch (current_mode) {
@@ -83,8 +102,6 @@ void target_tracking(const Attitude_t *attitude, const Target_t *target, Control
         case MODE_ATTACK:
             // 当处于追踪或攻击模式时，使用目标跟踪控制
             // 首先用目标位置计算期望的姿态角度
-            float desired_roll = 0.0f;
-            float desired_pitch = 0.0f;
             
             if (target->detected) {
                 // 使用目标位置PID控制器计算期望姿态角度
@@ -120,33 +137,32 @@ void target_tracking(const Attitude_t *attitude, const Target_t *target, Control
             
             // 使用角度误差和角速率进行级联PID控制
             // 获取当前角速率
-            MPU6050_Data_t *mpu_data = MPU6050_GetData();
             
             // 角度环PID -> 角速率设定值
-            float roll_rate_sp = pid_compute_advanced(
+            roll_rate_sp = pid_compute(
                 &attitude_controller_config.roll_angle_pid, 
-                0.0f, angle_error.roll, 0.0f, 0.01f);
+                0.0f, angle_error.roll, 0.01f);
             
-            float pitch_rate_sp = pid_compute_advanced(
+            pitch_rate_sp = pid_compute(
                 &attitude_controller_config.pitch_angle_pid, 
-                0.0f, angle_error.pitch, 0.0f, 0.01f);
+                0.0f, angle_error.pitch, 0.01f);
             
-            float yaw_rate_sp = pid_compute_advanced(
+            yaw_rate_sp = pid_compute(
                 &attitude_controller_config.yaw_angle_pid, 
-                0.0f, angle_error.yaw, 0.0f, 0.01f);
+                0.0f, angle_error.yaw, 0.01f);
             
             // 角速率环PID -> 控制输出
-            float roll_output = pid_compute_advanced(
+            roll_output = pid_compute(
                 &attitude_controller_config.roll_rate_pid, 
-                roll_rate_sp, mpu_data->gyro_x, 0.0f, 0.01f);
+                roll_rate_sp, mpu_data->gyro_x, 0.01f);
             
-            float pitch_output = pid_compute_advanced(
+            pitch_output = pid_compute(
                 &attitude_controller_config.pitch_rate_pid, 
-                pitch_rate_sp, mpu_data->gyro_y, 0.0f, 0.01f);
+                pitch_rate_sp, mpu_data->gyro_y, 0.01f);
             
-            float yaw_output = pid_compute_advanced(
+            yaw_output = pid_compute(
                 &attitude_controller_config.yaw_rate_pid, 
-                yaw_rate_sp, mpu_data->gyro_z, 0.0f, 0.01f);
+                yaw_rate_sp, mpu_data->gyro_z, 0.01f);
             
             // 根据控制权重分配控制输出
             roll_output *= attitude_controller_config.roll_control_weight;
@@ -193,8 +209,8 @@ void target_tracking(const Attitude_t *attitude, const Target_t *target, Control
     // 确保控制输出在有效范围内
     control->left_wing = (uint16_t)fmaxf(SERVO_MIN_PULSE, fminf(SERVO_MAX_PULSE, (float)control->left_wing));
     control->right_wing = (uint16_t)fmaxf(SERVO_MIN_PULSE, fminf(SERVO_MAX_PULSE, (float)control->right_wing));
-    control->thruster_1 = (uint16_t)fmaxf(MOTOR_MIN_PULSE, fminf(MOTOR_MAX_PULSE, (float)control->thruster_1));
-    control->thruster_2 = (uint16_t)fmaxf(MOTOR_MIN_PULSE, fminf(MOTOR_MAX_PULSE, (float)control->thruster_2));
+    control->thruster_1 = (uint16_t)fmaxf(MOTOR_IDLE, fminf(MOTOR_MAX_THRUST, (float)control->thruster_1));
+    control->thruster_2 = (uint16_t)fmaxf(MOTOR_IDLE, fminf(MOTOR_MAX_THRUST, (float)control->thruster_2));
 }
 
 /**
@@ -277,4 +293,244 @@ void update_attitude_control(const Attitude_t *attitude, const Target_t *target,
     control->right_wing = (uint16_t)fmaxf(SERVO_MIN_PULSE, fminf(SERVO_MAX_PULSE, (float)control->right_wing));
     control->thruster_1 = (uint16_t)fmaxf(MOTOR_IDLE, fminf(MOTOR_MAX_THRUST, (float)control->thruster_1));
     control->thruster_2 = (uint16_t)fmaxf(MOTOR_IDLE, fminf(MOTOR_MAX_THRUST, (float)control->thruster_2));
+}
+
+/**
+ * @brief 欧拉角转四元数
+ * 
+ * @param euler 欧拉角结构体
+ * @param quaternion 输出的四元数结构体
+ */
+void euler_to_quaternion(const Attitude_t *euler, Quaternion_t *quaternion) {
+    // 转换为弧度
+    float roll_rad = euler->roll * DEG_TO_RAD;
+    float pitch_rad = euler->pitch * DEG_TO_RAD;
+    float yaw_rad = euler->yaw * DEG_TO_RAD;
+    
+    // 计算角度的一半的三角函数值
+    float cr = cosf(roll_rad * 0.5f);
+    float sr = sinf(roll_rad * 0.5f);
+    float cp = cosf(pitch_rad * 0.5f);
+    float sp = sinf(pitch_rad * 0.5f);
+    float cy = cosf(yaw_rad * 0.5f);
+    float sy = sinf(yaw_rad * 0.5f);
+    
+    // 计算四元数分量
+    quaternion->q0 = cr * cp * cy + sr * sp * sy;
+    quaternion->q1 = sr * cp * cy - cr * sp * sy;
+    quaternion->q2 = cr * sp * cy + sr * cp * sy;
+    quaternion->q3 = cr * cp * sy - sr * sp * cy;
+    
+    // 归一化四元数
+    quaternion_normalize(quaternion);
+}
+
+/**
+ * @brief 四元数转欧拉角
+ * 
+ * @param quaternion 四元数结构体
+ * @param euler 输出的欧拉角结构体
+ */
+void quaternion_to_euler(const Quaternion_t *quaternion, Attitude_t *euler) {
+    // 提取四元数分量
+    float q0 = quaternion->q0;
+    float q1 = quaternion->q1;
+    float q2 = quaternion->q2;
+    float q3 = quaternion->q3;
+    
+    // 计算欧拉角，采用ZYX顺序
+    euler->roll = atan2f(2.0f * (q0*q1 + q2*q3), 1.0f - 2.0f * (q1*q1 + q2*q2)) * RAD_TO_DEG;
+    
+    // 防止万向锁
+    float sinp = 2.0f * (q0*q2 - q3*q1);
+    if (fabs(sinp) >= 1.0f) {
+        euler->pitch = copysignf(90.0f, sinp);  // 正负90度
+    } else {
+        euler->pitch = asinf(sinp) * RAD_TO_DEG;
+    }
+    
+    euler->yaw = atan2f(2.0f * (q0*q3 + q1*q2), 1.0f - 2.0f * (q2*q2 + q3*q3)) * RAD_TO_DEG;
+    
+    // 将偏航角规范化到[0, 360)
+    if (euler->yaw < 0.0f) {
+        euler->yaw += 360.0f;
+    }
+}
+
+/**
+ * @brief 四元数乘法
+ * 
+ * @param q1 第一个四元数
+ * @param q2 第二个四元数
+ * @param result 结果四元数
+ */
+void quaternion_multiply(const Quaternion_t *q1, const Quaternion_t *q2, Quaternion_t *result) {
+    result->q0 = q1->q0*q2->q0 - q1->q1*q2->q1 - q1->q2*q2->q2 - q1->q3*q2->q3;
+    result->q1 = q1->q0*q2->q1 + q1->q1*q2->q0 + q1->q2*q2->q3 - q1->q3*q2->q2;
+    result->q2 = q1->q0*q2->q2 - q1->q1*q2->q3 + q1->q2*q2->q0 + q1->q3*q2->q1;
+    result->q3 = q1->q0*q2->q3 + q1->q1*q2->q2 - q1->q2*q2->q1 + q1->q3*q2->q0;
+}
+
+/**
+ * @brief 四元数共轭
+ * 
+ * @param q 输入四元数
+ * @param result 结果四元数
+ */
+void quaternion_conjugate(const Quaternion_t *q, Quaternion_t *result) {
+    result->q0 = q->q0;
+    result->q1 = -q->q1;
+    result->q2 = -q->q2;
+    result->q3 = -q->q3;
+}
+
+/**
+ * @brief 四元数标准化
+ * 
+ * @param q 输入/输出四元数
+ */
+void quaternion_normalize(Quaternion_t *q) {
+    float norm = sqrtf(q->q0*q->q0 + q->q1*q->q1 + q->q2*q->q2 + q->q3*q->q3);
+    
+    // 防止除零
+    if (norm < 1e-10f) {
+        q->q0 = 1.0f;
+        q->q1 = q->q2 = q->q3 = 0.0f;
+        return;
+    }
+    
+    // 归一化
+    float inv_norm = 1.0f / norm;
+    q->q0 *= inv_norm;
+    q->q1 *= inv_norm;
+    q->q2 *= inv_norm;
+    q->q3 *= inv_norm;
+}
+
+/**
+ * @brief 计算两个姿态之间的误差四元数
+ * 
+ * @param q_current 当前姿态四元数
+ * @param q_target 目标姿态四元数
+ * @param q_error 输出的误差四元数
+ */
+void quaternion_error(const Quaternion_t *q_current, const Quaternion_t *q_target, Quaternion_t *q_error) {
+    Quaternion_t q_current_conj;
+    quaternion_conjugate(q_current, &q_current_conj);
+    quaternion_multiply(q_target, &q_current_conj, q_error);
+}
+
+/**
+ * @brief 自动调整PID参数
+ * 
+ * @param target 目标数据
+ * @param attitude 姿态数据
+ * @param adaptive_gain 自适应增益
+ */
+void auto_tune_pid_parameters(const Target_t *target, const Attitude_t *attitude, float adaptive_gain) {
+    // 仅当启用自适应控制且检测到目标时进行调整
+    if (!attitude_controller_config.adaptive_control_enabled || !target->detected) {
+        return;
+    }
+    
+    // 根据目标偏差和姿态变化调整PID参数
+    // 这是一个简化的自适应控制实现，实际应用中需要更复杂的算法
+    
+    // 计算目标偏差的绝对值
+    float abs_x_error = fabsf(target->x);
+    float abs_y_error = fabsf(target->y);
+    
+    // 如果目标接近中心，增强P参数以提高精度
+    if (abs_x_error < 0.2f && abs_y_error < 0.2f) {
+        attitude_controller_config.pitch_angle_pid.kp += adaptive_gain * 0.01f;
+        attitude_controller_config.roll_angle_pid.kp += adaptive_gain * 0.01f;
+        
+        // 限制最大增益
+        if (attitude_controller_config.pitch_angle_pid.kp > PITCH_KP * 1.5f) {
+            attitude_controller_config.pitch_angle_pid.kp = PITCH_KP * 1.5f;
+        }
+        if (attitude_controller_config.roll_angle_pid.kp > ROLL_KP * 1.5f) {
+            attitude_controller_config.roll_angle_pid.kp = ROLL_KP * 1.5f;
+        }
+    }
+    // 如果目标偏差较大，增强D参数以避免过冲
+    else if (abs_x_error > 0.6f || abs_y_error > 0.6f) {
+        attitude_controller_config.pitch_angle_pid.kd += adaptive_gain * 0.005f;
+        attitude_controller_config.roll_angle_pid.kd += adaptive_gain * 0.005f;
+        
+        // 限制最大D增益
+        if (attitude_controller_config.pitch_angle_pid.kd > PITCH_KD * 1.5f) {
+            attitude_controller_config.pitch_angle_pid.kd = PITCH_KD * 1.5f;
+        }
+        if (attitude_controller_config.roll_angle_pid.kd > ROLL_KD * 1.5f) {
+            attitude_controller_config.roll_angle_pid.kd = ROLL_KD * 1.5f;
+        }
+    }
+    // 如果目标在中等距离，恢复默认参数
+    else {
+        // 缓慢恢复到默认参数
+        attitude_controller_config.pitch_angle_pid.kp = 
+            0.99f * attitude_controller_config.pitch_angle_pid.kp + 0.01f * PITCH_KP;
+        attitude_controller_config.roll_angle_pid.kp = 
+            0.99f * attitude_controller_config.roll_angle_pid.kp + 0.01f * ROLL_KP;
+        attitude_controller_config.pitch_angle_pid.kd = 
+            0.99f * attitude_controller_config.pitch_angle_pid.kd + 0.01f * PITCH_KD;
+        attitude_controller_config.roll_angle_pid.kd = 
+            0.99f * attitude_controller_config.roll_angle_pid.kd + 0.01f * ROLL_KD;
+    }
+}
+
+/**
+ * @brief 初始化姿态控制器
+ */
+void attitude_control_init(void) {
+    // 初始化角度环PID
+    pid_init(&attitude_controller_config.roll_angle_pid, 
+                      ROLL_KP, ROLL_KI, ROLL_KD, ROLL_MAX);
+    pid_init(&attitude_controller_config.pitch_angle_pid, 
+                      PITCH_KP, PITCH_KI, PITCH_KD, PITCH_MAX);
+    pid_init(&attitude_controller_config.yaw_angle_pid, 
+                      YAW_KP, YAW_KI, YAW_KD, YAW_MAX);
+    
+    // 初始化角速率环PID，使用更快的响应参数
+    pid_init(&attitude_controller_config.roll_rate_pid, 
+                      2.5f, 0.1f, 0.05f, 200.0f);
+    pid_init(&attitude_controller_config.pitch_rate_pid, 
+                      2.0f, 0.1f, 0.05f, 200.0f);
+    pid_init(&attitude_controller_config.yaw_rate_pid, 
+                      1.5f, 0.01f, 0.1f, 200.0f);
+    
+    // 初始化目标追踪PID
+    pid_init(&attitude_controller_config.x_target_pid, 
+                      TARGET_KP, TARGET_KI, TARGET_KD, TARGET_MAX);
+    pid_init(&attitude_controller_config.y_target_pid, 
+                      TARGET_KP, TARGET_KI, TARGET_KD, TARGET_MAX);
+    
+    // 设置控制分配权重
+    attitude_controller_config.roll_control_weight = 1.0f;
+    attitude_controller_config.pitch_control_weight = 1.0f;
+    attitude_controller_config.yaw_control_weight = 0.5f;
+    
+    // 设置自适应控制参数
+    attitude_controller_config.adaptive_control_enabled = true;
+    attitude_controller_config.adaptive_gain = 0.01f;
+    attitude_controller_config.reference_model_tau = 0.5f;
+}
+
+/**
+ * @brief 获取姿态控制器配置
+ * 
+ * @return AttitudeControllerConfig_t* 姿态控制器配置指针
+ */
+AttitudeControllerConfig_t* get_attitude_controller_config(void) {
+    return &attitude_controller_config;
+}
+
+/**
+ * @brief 设置姿态控制器配置
+ * 
+ * @param config 姿态控制器配置
+ */
+void set_attitude_controller_config(AttitudeControllerConfig_t config) {
+    attitude_controller_config = config;
 }

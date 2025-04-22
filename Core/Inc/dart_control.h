@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// 前向声明，避免循环包含
+typedef enum FlightMode FlightMode_t;
+
 // PWM控制参数定义
 #define PWM_FREQ_HZ      50      // 舵机标准PWM频率为50Hz
 #define SERVO_MIN_PULSE  1000    // 舵机最小脉宽(微秒)
@@ -69,6 +72,9 @@ void dart_system_init(void);
 
 // 姿态控制函数
 void update_attitude_control(const Attitude_t *attitude, const Target_t *target, Control_t *control);
+
+// 飞行控制主循环
+void dart_control_update(FlightMode_t mode);
 
 // PWM控制函数
 void pwm_init(void);

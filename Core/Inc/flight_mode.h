@@ -6,6 +6,8 @@
 #include "dart_control.h"
 
 // 飞行模式定义 - 借鉴PX4的模式设计
+// 注释掉重复定义的枚举，使用 dart_control.h 中的前向声明
+/*
 typedef enum {
     MODE_STANDBY = 0,     // 待机模式 - 系统初始化完成但未激活
     MODE_SEARCH,          // 搜索模式 - 主动搜索目标
@@ -15,6 +17,18 @@ typedef enum {
     MODE_FAILSAFE,        // 故障保护模式 - 发生错误时的安全模式
     MODE_COUNT            // 模式总数（用于边界检查）
 } FlightMode_t;
+*/
+
+// 定义具体的飞行模式值，而不是重定义类型
+enum FlightMode {
+    MODE_STANDBY = 0,     // 待机模式 - 系统初始化完成但未激活
+    MODE_SEARCH,          // 搜索模式 - 主动搜索目标
+    MODE_TRACKING,        // 追踪模式 - 已发现目标并追踪
+    MODE_ATTACK,          // 攻击模式 - 接近目标并执行攻击动作
+    MODE_RETURN,          // 返回模式 - 任务完成后返回
+    MODE_FAILSAFE,        // 故障保护模式 - 发生错误时的安全模式
+    MODE_COUNT            // 模式总数（用于边界检查）
+};
 
 // 飞行阶段定义
 typedef enum {
