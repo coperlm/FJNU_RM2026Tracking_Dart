@@ -64,7 +64,10 @@ void delay_ms(uint16_t ms);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 /**
- * @brief 重定向printf到UART和OLED显示器
+ * @brief 重定向printf到UART1和OLED显示器
+ * @param ch 字符
+ * @param f 文件指针 (未使用)
+ * @return int 写入的字符
  */
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
@@ -74,33 +77,32 @@ void delay_ms(uint16_t ms);
 
 PUTCHAR_PROTOTYPE
 {
-  // 发送到UART
+  // 通过 UART1 发送字符
   HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-  
-  // 发送到OLED屏幕
-  static char line_buffer[128];
-  static uint8_t buffer_index = 0;
-  
-  // 存储字符到缓冲区
-  if (ch != '\r') { // 忽略回车符
+
+  // 同时发送到OLED屏幕进行显示
+  static char line_buffer[128]; // OLED行缓冲区
+  static uint8_t buffer_index = 0; // 缓冲区索引
+
+  // 存储字符到缓冲区 (忽略回车符 '\r')
+  if (ch != '\r') {
     if (buffer_index < sizeof(line_buffer) - 1) {
       line_buffer[buffer_index++] = ch;
     }
   }
-  
-  // 遇到换行符或缓冲区满时，显示当前行
+
+  // 遇到换行符 '\n' 或缓冲区满时，在OLED上显示该行
   if (ch == '\n' || buffer_index >= sizeof(line_buffer) - 1) {
     line_buffer[buffer_index] = '\0';  // 添加字符串结束符
-    OLED_Printf("%s", line_buffer);   // 显示到OLED
-    buffer_index = 0;                 // 重置缓冲区
+    OLED_Printf("%s", line_buffer);   // 在OLED上打印缓冲区内容
+    buffer_index = 0;                 // 重置缓冲区索引
   }
-  
+
   return ch;
 }
 
 /**
- * @brief 延时函数，基于HAL库延时
- * 
+ * @brief 毫秒级延时函数 (基于 HAL_Delay)
  * @param ms 要延时的毫秒数
  */
 void delay_ms(uint16_t ms)
@@ -110,88 +112,91 @@ void delay_ms(uint16_t ms)
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
+  * @brief  应用程序入口点.
   * @retval int
   */
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  // 此处可添加用户代码 - 初始化前
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  /* 复位所有外设, 初始化 Flash 接口和 Systick */
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  // 此处可添加用户代码 - 系统时钟配置前
   /* USER CODE END Init */
 
-  /* Configure the system clock */
+  /* 配置系统时钟 */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  // 此处可添加用户代码 - 外设初始化前
   /* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_I2C1_Init();
-  MX_I2C2_Init();
-  MX_TIM1_Init();
-  MX_TIM2_Init();
-  MX_USART1_UART_Init();
+  /* 初始化所有已配置的外设 */
+  MX_GPIO_Init();     // 初始化 GPIO
+  MX_I2C1_Init();     // 初始化 I2C1 (可能用于传感器)
+  MX_I2C2_Init();     // 初始化 I2C2 (可能用于OLED)
+  MX_TIM1_Init();     // 初始化 TIM1 (可能用于PWM输出 - 舵机/电机)
+  MX_TIM2_Init();     // 初始化 TIM2 (可能用于PWM输出或定时)
+  MX_USART1_UART_Init(); // 初始化 USART1 (用于调试信息输出)
   /* USER CODE BEGIN 2 */
-  
-  // 初始化随机数生成器 - 使用当前系统时间作为种子
+
+  // 初始化随机数生成器 - 使用系统滴答定时器值作为种子
   srand(HAL_GetTick());
-  
+
   // 初始化OLED显示屏
   OLED_Init();
   HAL_Delay(100);  // 等待OLED稳定
-  OLED_Clear();
-  
-  // 中文：飞镖飞控系统启动...
-  printf("\n\rDart Flight Control System Start...\n\r");
+  OLED_Clear();    // 清屏
 
-  
-  // 初始化飞镖控制系统
+  // 通过 printf (已重定向到 UART 和 OLED) 输出启动信息
+  printf("\n\rDart Flight Control System Start...\n\r"); // 飞镖飞控系统启动...
+
+
+  // 初始化飞镖控制核心系统 (包括姿态、PID等)
   dart_system_init();
-  
-  // 中文：系统初始化完成，开始控制循环...
-  printf("System Init Done. Starting Control Loop...\n\r\n\r");
+
+  // 输出初始化完成信息
+  printf("System Init Done. Starting Control Loop...\n\r\n\r"); // 系统初始化完成，开始控制循环...
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  // 主控制循环
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    // 获取陀螺仪数据（此处使用模拟数据，实际应用中替换为IMU传感器读取）
+    // 1. 获取姿态数据 (当前使用模拟数据)
+    //    实际应用中应替换为 MPU6050 或其他 IMU 传感器的数据读取和解算
     simulate_gyro(&attitude);
-    
-    // 获取目标数据（此处使用模拟数据，实际应用中替换为视觉或其他探测系统）
+
+    // 2. 获取目标数据 (当前使用模拟数据)
+    //    实际应用中应替换为视觉模块或其他目标探测系统的数据输入
     simulate_target(&target, &attitude);
-    
-    // 更新姿态控制
+
+    // 3. 更新姿态控制逻辑 (计算舵机/电机输出)
     update_attitude_control(&attitude, &target, &control);
-    
-    // 输出调试信息
-    // 中文：姿态: Roll=..., Pitch=..., Yaw=...
+
+    // 4. 输出调试信息到 UART 和 OLED
+    //    显示当前姿态 (横滚、俯仰、偏航)
     printf("Att: Roll=%.1f, Pitch=%.1f, Yaw=%.1f | ", attitude.roll, attitude.pitch, attitude.yaw);
 
-           
+    //    显示目标检测状态和坐标
     if (target.detected) {
-        printf("目标: X=%.2f, Y=%.2f [检测到]\n\r", target.x, target.y);
+        printf("Target: X=%.2f, Y=%.2f [Detected]\n\r", target.x, target.y); // 目标: X=..., Y=... [检测到]
     } else {
-        printf("目标: 未检测到\n\r");
+        printf("Target: Not Detected\n\r"); // 目标: 未检测到
     }
-    
-    // 控制循环频率
+
+    // 5. 控制循环频率 (延时以达到约 100Hz 的控制频率)
     delay_ms(LOOP_INTERVAL_MS);
   }
   /* USER CODE END 3 */

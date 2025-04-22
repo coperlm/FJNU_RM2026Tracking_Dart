@@ -459,6 +459,11 @@
               <FileType>1</FileType>
               <FilePath>..\Core\Src\mpu6050.c</FilePath>
             </File>
+            <File>
+              <FileName>flight_mode.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\flight_mode.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
